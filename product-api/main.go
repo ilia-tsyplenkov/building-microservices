@@ -1,6 +1,7 @@
 package main
 
 import (
+	"building-microservices/product-api/data"
 	"building-microservices/product-api/handlers"
 	"context"
 	"log"
@@ -9,26 +10,35 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
 )
 
 func main() {
 
 	l := log.New(os.Stdout, "product-api ", log.LstdFlags)
-	ph := handlers.NewProducts(l)
-	// sm := http.NewServeMux()
+	v := data.NewValidation()
+	ph := handlers.NewProducts(l, v)
 	r := mux.NewRouter()
-	//sm.Handle("/products", ph).Methods("GET").Subrouter()
-	getRouter := r.PathPrefix("/").Methods("GET").Subrouter()
-	getRouter.HandleFunc("/", ph.GetProducts)
+	getRouter := r.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/products", ph.GetProducts)
+	getRouter.HandleFunc("/products/{id:[0-9]+}", ph.GetProduct)
 
-	putRouter := r.PathPrefix("/").Methods("PUT").Subrouter()
+	putRouter := r.Methods(http.MethodPut).Subrouter()
 	putRouter.Use(ph.MiddlewareValidateProduct)
-	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProduct)
+	putRouter.HandleFunc("/products", ph.UpdateProduct)
 
-	postRouter := r.PathPrefix("/").Methods("POST").Subrouter()
+	postRouter := r.Methods(http.MethodPost).Subrouter()
 	postRouter.Use(ph.MiddlewareValidateProduct)
-	postRouter.HandleFunc("/", ph.AddProduct)
+	postRouter.HandleFunc("/products", ph.Create)
+
+	deleteRouter := r.Methods(http.MethodDelete).Subrouter()
+	deleteRouter.HandleFunc("/products/{id:[0-9]+}", ph.Delete)
+
+	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
+	sh := middleware.Redoc(opts, nil)
+	r.Handle("/docs", sh)
+	r.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
 	server := &http.Server{
 		Addr:         ":8080",
@@ -52,5 +62,4 @@ func main() {
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	l.Println("Shutting server down...")
 	server.Shutdown(ctx)
-
 }

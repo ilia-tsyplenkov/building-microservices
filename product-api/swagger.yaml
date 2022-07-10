@@ -1,0 +1,160 @@
+basePath: /
+consumes:
+- application/json
+definitions:
+  GenericError:
+    properties:
+      message:
+        type: string
+        x-go-name: Message
+    type: object
+    x-go-package: building-microservices/product-api/handlers
+  Product:
+    description: Product defines the structure for an API product
+    properties:
+      description:
+        maxLength: 10000
+        type: string
+        x-go-name: Description
+      id:
+        format: int64
+        minimum: 1
+        type: integer
+        x-go-name: ID
+      name:
+        maxLength: 255
+        type: string
+        x-go-name: Name
+      price:
+        format: float
+        minimum: 0.01
+        type: number
+        x-go-name: Price
+      sku:
+        pattern: '[a-z]+-[a-z]+-[a-z]+'
+        type: string
+        x-go-name: SKU
+    required:
+    - name
+    - price
+    - sku
+    type: object
+    x-go-package: building-microservices/product-api/data
+  ValidationError:
+    properties:
+      messages:
+        items:
+          type: string
+        type: array
+        x-go-name: Messages
+    type: object
+    x-go-package: building-microservices/product-api/handlers
+info:
+  description: Documentation for Product API
+  title: of Product API
+  version: 1.0.0
+paths:
+  /products:
+    get:
+      description: Returns a list of products
+      operationId: listProducts
+      responses:
+        "200":
+          $ref: '#/responses/productsResponse'
+      tags:
+      - products
+    post:
+      description: Create a new product
+      operationId: createProduct
+      parameters:
+      - description: |-
+          Product data structure to Update or Create.
+          Note: the id field is ignored by update and create operations
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/Product'
+      responses:
+        "201":
+          $ref: '#/responses/noContentResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
+      tags:
+      - products
+    put:
+      description: Update a products details
+      operationId: updateProduct
+      parameters:
+      - description: |-
+          Product data structure to Update or Create.
+          Note: the id field is ignored by update and create operations
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/Product'
+      responses:
+        "201":
+          $ref: '#/responses/noContentResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
+      tags:
+      - products
+  /products/{id}:
+    delete:
+      description: Delete the product
+      operationId: deleteProduct
+      parameters:
+      - description: The id for the product to delete from database
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+        x-go-name: ID
+      responses:
+        "201":
+          $ref: '#/responses/noContentResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - products
+    get:
+      description: Returns the product
+      operationId: product
+      responses:
+        "200":
+          $ref: '#/responses/productResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - products
+produces:
+- application/json
+responses:
+  errorResponse:
+    description: ""
+    schema:
+      $ref: '#/definitions/GenericError'
+  errorValidation:
+    description: ""
+    schema:
+      $ref: '#/definitions/ValidationError'
+  noContentResponse:
+    description: ""
+  productResponse:
+    description: Product structure returns in the response
+    schema:
+      $ref: '#/definitions/Product'
+  productsResponse:
+    description: A list of products returns in the response
+    schema:
+      items:
+        $ref: '#/definitions/Product'
+      type: array
+schemes:
+- http
+swagger: "2.0"

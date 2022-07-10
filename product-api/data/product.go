@@ -1,25 +1,44 @@
 package data
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"regexp"
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
+// ErrProductNotFound is an error raised when a product can not be found in the database
+var ErrProductNotFound = fmt.Errorf("Product not found")
+
 // Product defines the structure for an API product
+// swagger:model
 type Product struct {
-	ID          int     `json:"id"`
-	Name        string  `json:"name" validate:"required"`
-	Description string  `json:"description"`
-	Price       float32 `json:"price" validate:"gt=0"`
-	SKU         string  `json:"sku" validate:"required,sku"`
-	CreatedOn   string  `json:"-"`
-	UpdatedOn   string  `json:"-"`
-	DeletedOn   string  `json:"-"`
+	// the id of the product
+
+	// required: false
+	// min: 1
+	ID int `json:"id"`
+	// the name of the product
+
+	// required: true
+	// max length: 255
+	Name string `json:"name" validate:"required"`
+	// the description of the product
+
+	// required: false
+	// max length: 10000
+	Description string `json:"description"`
+	// the price of the product
+
+	// required: true
+	// min: 0.01
+	Price float32 `json:"price" validate:"required,gt=0"`
+	// the sku of the product
+
+	// required: true
+	// pattern: [a-z]+-[a-z]+-[a-z]+
+	SKU       string `json:"sku" validate:"required,sku"`
+	CreatedOn string `json:"-"`
+	UpdatedOn string `json:"-"`
+	DeletedOn string `json:"-"`
 }
 
 func NewProduct() Product {
@@ -27,27 +46,6 @@ func NewProduct() Product {
 		UpdatedOn: time.Now().UTC().String(),
 	}
 }
-func (p *Product) FromJSON(r io.Reader) error {
-	d := json.NewDecoder(r)
-	return d.Decode(p)
-}
-
-func (p *Product) Validate() error {
-	validate := validator.New()
-	validate.RegisterValidation("sku", skuValidation)
-	return validate.Struct(p)
-}
-
-func skuValidation(fl validator.FieldLevel) bool {
-	reg := regexp.MustCompile(`[a-z]+-[a-z]+-[a-z]+`)
-	matches := reg.FindAllStringSubmatch(fl.Field().String(), -1)
-	if len(matches) != 1 {
-		return false
-	}
-	return true
-}
-
-var ErrProductNotFound = fmt.Errorf("Product not found")
 
 // productList is a hard coded list of products for this
 // example data source
@@ -74,31 +72,16 @@ var productList = []*Product{
 
 type Products []*Product
 
-func (p *Products) ToJSON(w io.Writer) error {
-	encoder := json.NewEncoder(w)
-	return encoder.Encode(p)
-}
-
 func GetProducts() Products {
 	return productList
 }
 
-func UpdateProducts(update Products) {
-	for _, u := range update {
-		updated := false
-		for i, p := range productList {
-			if u.ID == p.ID {
-				tmp := p
-				p = u
-				p.CreatedOn = tmp.CreatedOn
-				productList[i] = p
-				updated = true
-			}
-		}
-		if !updated {
-			productList = append(productList, u)
-		}
+func GetProduct(id int) (*Product, error) {
+	p, _, err := findProduct(id)
+	if err != nil {
+		return nil, err
 	}
+	return p, nil
 }
 
 func AddProduct(p *Product) {
@@ -120,13 +103,25 @@ func findProduct(id int) (*Product, int, error) {
 	return nil, -1, ErrProductNotFound
 }
 
-func UpdateProduct(id int, p *Product) error {
-	oldP, pos, err := findProduct(id)
+func UpdateProduct(p Product) error {
+	oldP, pos, err := findProduct(p.ID)
 	if err != nil {
 		return err
 	}
 	p.CreatedOn = oldP.CreatedOn
-	p.ID = id
-	productList[pos] = p
+	productList[pos] = &p
+	return nil
+}
+
+func DeleteProduct(id int) error {
+	_, pos, err := findProduct(id)
+	if err != nil {
+		return err
+	}
+	if pos == len(productList)-1 {
+		productList = productList[:pos]
+	} else {
+		productList = append(productList[:pos], productList[pos+1:]...)
+	}
 	return nil
 }
