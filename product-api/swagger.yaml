@@ -124,7 +124,15 @@ paths:
       - products
     get:
       description: Returns the product
-      operationId: product
+      operationId: listSingleProduct
+      parameters:
+      - description: The id for the product to delete from database
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+        x-go-name: ID
       responses:
         "200":
           $ref: '#/responses/productResponse'

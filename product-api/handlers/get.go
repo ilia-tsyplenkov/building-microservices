@@ -14,6 +14,7 @@ import (
 // GetProducts returns the products from the data store
 func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
 	products := data.GetProducts()
+	rw.Header().Add("Content-Type", "application/json")
 	err := data.ToJSON(products, rw)
 	if err != nil {
 		var status int
@@ -28,7 +29,7 @@ func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
 
 }
 
-// swagger:route GET /products/{id} products product
+// swagger:route GET /products/{id} products listSingleProduct
 // Returns the product
 // responses:
 //  200: productResponse
@@ -37,6 +38,7 @@ func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
 // GetProduct returns the product from the data store
 func (p *Products) GetProduct(rw http.ResponseWriter, r *http.Request) {
 	id := p.getProductID(r)
+	rw.Header().Add("Content-Type", "application/json")
 	product, err := data.GetProduct(id)
 	if err != nil {
 		msg := fmt.Sprintf("product not found: product Id - %d", id)
