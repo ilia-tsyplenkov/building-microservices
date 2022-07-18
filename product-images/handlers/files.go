@@ -9,11 +9,13 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+// Files is a FileHandler
 type Files struct {
 	log   hclog.Logger
 	store files.Storage
 }
 
+// NewFiles creates a new instance of Files and returns pointer to it
 func NewFiles(l hclog.Logger, s files.Storage) *Files {
 	return &Files{log: l, store: s}
 }
