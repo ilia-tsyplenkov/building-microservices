@@ -15,7 +15,7 @@
 // swagger:meta
 package handlers
 
-import "building-microservices/product-api/data"
+import "github.com/ilia-tsyplenkov/building-microservices/product-api/data"
 
 // A list of products returns in the response
 // swagger:response productsResponse

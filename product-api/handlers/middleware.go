@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"building-microservices/product-api/data"
 	"context"
 	"net/http"
+
+	"github.com/ilia-tsyplenkov/building-microservices/product-api/data"
 )
 
 type KeyProduct struct{}

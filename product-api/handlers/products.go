@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"building-microservices/product-api/data"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/ilia-tsyplenkov/building-microservices/product-api/data"
 
 	"github.com/gorilla/mux"
 )

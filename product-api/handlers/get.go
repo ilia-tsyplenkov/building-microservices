@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"building-microservices/product-api/data"
 	"fmt"
 	"net/http"
+
+	"github.com/ilia-tsyplenkov/building-microservices/product-api/data"
 )
 
 // swagger:route GET /products products listProducts

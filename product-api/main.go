@@ -1,14 +1,19 @@
 package main
 
 import (
-	"building-microservices/product-api/data"
-	"building-microservices/product-api/handlers"
 	"context"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/ilia-tsyplenkov/building-microservices/product-api/data"
+	"github.com/ilia-tsyplenkov/building-microservices/product-api/handlers"
+
+	"google.golang.org/grpc"
+
+	protos "github.com/ilia-tsyplenkov/building-microservices/currency/protos/currency"
 
 	"github.com/go-openapi/runtime/middleware"
 	gohandlers "github.com/gorilla/handlers"
@@ -41,6 +46,10 @@ func main() {
 	r.Handle("/docs", sh)
 	r.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
+	//currencyCallOpts := []grpc.CallOption{grpc.CallOption{}}
+	// create a currency client
+	cc := grpc.ClientConnInterface
+	protos.NewCurre
 	cors := gohandlers.CORS(gohandlers.AllowedOrigins([]string{"http://localhost:3000"}))
 
 	server := &http.Server{
