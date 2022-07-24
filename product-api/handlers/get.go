@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
+	protos "github.com/ilia-tsyplenkov/building-microservices/currency/protos/currency"
 	"github.com/ilia-tsyplenkov/building-microservices/product-api/data"
 )
 
@@ -49,10 +51,27 @@ func (p *Products) GetProduct(rw http.ResponseWriter, r *http.Request) {
 		return
 
 	}
+
+	exchange, err := p.exchangeRate()
+	if err != nil {
+		p.l.Println("[ERROR] error getting new rate")
+		data.ToJSON(&GenericError{Message: err.Error()}, rw)
+	}
+	product.Price = product.Price * exchange.Rate
 	if err := data.ToJSON(product, rw); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		data.ToJSON(&GenericError{Message: err.Error()}, rw)
 		return
 	}
+
+}
+
+func (p *Products) exchangeRate() (*protos.RateResponse, error) {
+	// get exchange rate
+	request := &protos.RateRequest{
+		Base:        protos.Currencies(protos.Currencies_value["EUR"]),
+		Destination: protos.Currencies(protos.Currencies_value["GBP"]),
+	}
+	return p.cc.GetRate(context.Background(), request)
 
 }

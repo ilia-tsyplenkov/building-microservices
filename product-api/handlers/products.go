@@ -8,11 +8,13 @@ import (
 	"github.com/ilia-tsyplenkov/building-microservices/product-api/data"
 
 	"github.com/gorilla/mux"
+	protos "github.com/ilia-tsyplenkov/building-microservices/currency/protos/currency"
 )
 
 type Products struct {
-	l *log.Logger
-	v *data.Validation
+	l  *log.Logger
+	v  *data.Validation
+	cc protos.CurrencyClient
 }
 
 func (p *Products) getProductID(r *http.Request) int {
@@ -33,6 +35,6 @@ type ValidationError struct {
 	Messages []string `json:"messages"`
 }
 
-func NewProducts(l *log.Logger, v *data.Validation) *Products {
-	return &Products{l, v}
+func NewProducts(l *log.Logger, v *data.Validation, cc protos.CurrencyClient) *Products {
+	return &Products{l, v, cc}
 }
