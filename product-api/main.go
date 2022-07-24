@@ -12,6 +12,7 @@ import (
 	"github.com/ilia-tsyplenkov/building-microservices/product-api/handlers"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	protos "github.com/ilia-tsyplenkov/building-microservices/currency/protos/currency"
 
@@ -24,7 +25,16 @@ func main() {
 
 	l := log.New(os.Stdout, "product-api ", log.LstdFlags)
 	v := data.NewValidation()
-	ph := handlers.NewProducts(l, v)
+	grpcConn, err := grpc.Dial("localhost:8082", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		l.Fatalf("error estalishing a connection to grpc server: %v\n", err)
+		panic(err)
+	}
+	defer grpcConn.Close()
+	// create a currency client
+	cc := protos.NewCurrencyClient(grpcConn)
+
+	ph := handlers.NewProducts(l, v, cc)
 	r := mux.NewRouter()
 	getRouter := r.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/products", ph.GetProducts)
@@ -46,10 +56,6 @@ func main() {
 	r.Handle("/docs", sh)
 	r.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
-	//currencyCallOpts := []grpc.CallOption{grpc.CallOption{}}
-	// create a currency client
-	cc := grpc.ClientConnInterface
-	protos.NewCurre
 	cors := gohandlers.CORS(gohandlers.AllowedOrigins([]string{"http://localhost:3000"}))
 
 	server := &http.Server{
