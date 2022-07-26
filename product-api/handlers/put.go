@@ -17,7 +17,9 @@ import (
 // UpdateProduct handles PUT requests to update products
 func (p *Products) UpdateProduct(rw http.ResponseWriter, r *http.Request) {
 	product := r.Context().Value(KeyProduct{}).(data.Product)
-	if err := data.UpdateProduct(product); err != nil {
+	p.l.Debug("updating product")
+	if err := p.productDB.UpdateProduct(product); err != nil {
+		p.l.Error("unable to update product", "error", err)
 		http.Error(rw, "error updating product: "+err.Error(), http.StatusBadRequest)
 		return
 

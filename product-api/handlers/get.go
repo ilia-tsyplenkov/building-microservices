@@ -1,11 +1,8 @@
 package handlers
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 
-	protos "github.com/ilia-tsyplenkov/building-microservices/currency/protos/currency"
 	"github.com/ilia-tsyplenkov/building-microservices/product-api/data"
 )
 
@@ -16,18 +13,18 @@ import (
 
 // GetProducts returns the products from the data store
 func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
-	products := data.GetProducts()
+	p.l.Debug("Get all records")
 	rw.Header().Add("Content-Type", "application/json")
-	err := data.ToJSON(products, rw)
+	products, err := p.productDB.GetProducts("")
 	if err != nil {
-		var status int
-		if err == data.ErrProductNotFound {
-			status = http.StatusNotFound
-		} else {
-			status = http.StatusInternalServerError
-		}
-		http.Error(rw, err.Error(), status)
+		rw.WriteHeader(http.StatusInternalServerError)
+		data.ToJSON(&GenericError{Message: err.Error()}, rw)
 		return
+
+	}
+	err = data.ToJSON(products, rw)
+	if err != nil {
+		p.l.Error("Unable to serialize product", "error", err)
 	}
 
 }
@@ -41,37 +38,25 @@ func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
 // GetProduct returns the product from the data store
 func (p *Products) GetProduct(rw http.ResponseWriter, r *http.Request) {
 	id := p.getProductID(r)
+	p.l.Debug("Get record", "id", id)
 	rw.Header().Add("Content-Type", "application/json")
-	product, err := data.GetProduct(id)
-	if err != nil {
-		msg := fmt.Sprintf("product not found: product Id - %d", id)
-		p.l.Println("[ERROR] " + msg)
+	product, err := p.productDB.GetProduct(id, "")
+	switch err {
+	case nil:
+	case data.ErrProductNotFound:
+		p.l.Error("unable to find product", "id", id, "error", err)
 		rw.WriteHeader(http.StatusNotFound)
-		data.ToJSON(&GenericError{Message: msg}, rw)
-		return
-
-	}
-
-	exchange, err := p.exchangeRate()
-	if err != nil {
-		p.l.Println("[ERROR] error getting new rate")
+		data.ToJSON(&GenericError{Message: err.Error()}, rw)
+	default:
+		p.l.Error("unable to fetch product", "id", id, "error", err)
+		rw.WriteHeader(http.StatusInternalServerError)
 		data.ToJSON(&GenericError{Message: err.Error()}, rw)
 	}
-	product.Price = product.Price * exchange.Rate
 	if err := data.ToJSON(product, rw); err != nil {
+		p.l.Error("Unable to serialize product", "id", id, "error", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		data.ToJSON(&GenericError{Message: err.Error()}, rw)
 		return
 	}
-
-}
-
-func (p *Products) exchangeRate() (*protos.RateResponse, error) {
-	// get exchange rate
-	request := &protos.RateRequest{
-		Base:        protos.Currencies(protos.Currencies_value["EUR"]),
-		Destination: protos.Currencies(protos.Currencies_value["GBP"]),
-	}
-	return p.cc.GetRate(context.Background(), request)
 
 }

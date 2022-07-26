@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/ilia-tsyplenkov/building-microservices/product-api/data"
 	"github.com/ilia-tsyplenkov/building-microservices/product-api/handlers"
 
@@ -23,18 +23,20 @@ import (
 
 func main() {
 
-	l := log.New(os.Stdout, "product-api ", log.LstdFlags)
+	//l := log.New(os.Stdout, "product-api ", log.LstdFlags)
+	l := hclog.Default()
 	v := data.NewValidation()
 	grpcConn, err := grpc.Dial("localhost:8082", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		l.Fatalf("error estalishing a connection to grpc server: %v\n", err)
+		l.Error("error estalishing a connection to grpc server", "error", err)
 		panic(err)
 	}
 	defer grpcConn.Close()
 	// create a currency client
 	cc := protos.NewCurrencyClient(grpcConn)
+	db := data.NewProductDB(cc, l)
 
-	ph := handlers.NewProducts(l, v, cc)
+	ph := handlers.NewProducts(l, v, db)
 	r := mux.NewRouter()
 	getRouter := r.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/products", ph.GetProducts)
@@ -61,11 +63,12 @@ func main() {
 	server := &http.Server{
 		Addr:         ":8080",
 		Handler:      cors(r),
+		ErrorLog:     l.StandardLogger(&hclog.StandardLoggerOptions{}),
 		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
-	l.Printf("Starting server at %s ...\n", server.Addr)
+	l.Info("Starting server at %s ...\n", server.Addr)
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
@@ -76,8 +79,8 @@ func main() {
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
 	sig := <-sigChan
-	l.Println("Got signal -", sig)
+	l.Info("Got signal -", sig)
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	l.Println("Shutting server down...")
+	l.Info("Shutting server down...")
 	server.Shutdown(ctx)
 }

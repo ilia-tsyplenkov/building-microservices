@@ -15,5 +15,6 @@ import (
 // Create handles POST requests to add new product to the data storage
 func (p *Products) Create(rw http.ResponseWriter, r *http.Request) {
 	product := r.Context().Value(KeyProduct{}).(data.Product)
-	data.AddProduct(&product)
+	p.l.Debug("Creating product %#v\n", product)
+	p.productDB.AddProduct(product)
 }

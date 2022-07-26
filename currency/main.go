@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/ilia-tsyplenkov/building-microservices/currency/data"
 	"github.com/ilia-tsyplenkov/building-microservices/currency/server"
 
 	protos "github.com/ilia-tsyplenkov/building-microservices/currency/protos/currency"
@@ -16,7 +17,12 @@ import (
 func main() {
 	log := hclog.Default()
 	gc := grpc.NewServer()
-	cs := server.NewCurrency(log)
+	rates, err := data.NewExchangeRates(log)
+	if err != nil {
+		log.Error("Unable to generate rates", "error", err)
+		os.Exit(1)
+	}
+	cs := server.NewCurrency(rates, log)
 	protos.RegisterCurrencyServer(gc, cs)
 	reflection.Register(gc)
 	l, err := net.Listen("tcp", ":8082")
