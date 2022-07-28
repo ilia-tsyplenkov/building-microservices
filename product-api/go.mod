@@ -12,7 +12,6 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-hclog v1.2.1
-	github.com/ilia-tsyplenkov/building-microservices/currency v0.0.0-20220722142242-98eb5fc325ca
 	github.com/stretchr/testify v1.7.2
 	google.golang.org/grpc v1.48.0
 )
@@ -31,6 +30,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/ilia-tsyplenkov/building-microservices/currency v0.0.0-20220726111913-c94c84fa70bb // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect

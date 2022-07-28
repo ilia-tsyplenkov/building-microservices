@@ -40,7 +40,9 @@ func main() {
 	r := mux.NewRouter()
 	getRouter := r.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/products", ph.GetProducts)
+	getRouter.HandleFunc("/products", ph.GetProducts).Queries("currency", "{[A-Z]{3}}")
 	getRouter.HandleFunc("/products/{id:[0-9]+}", ph.GetProduct)
+	getRouter.HandleFunc("/products/{id:[0-9]+}", ph.GetProduct).Queries("currency", "{[A-Z]{3}}")
 
 	putRouter := r.Methods(http.MethodPut).Subrouter()
 	putRouter.Use(ph.MiddlewareValidateProduct)
@@ -68,11 +70,11 @@ func main() {
 		WriteTimeout: 1 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
-	l.Info("Starting server at %s ...\n", server.Addr)
+	l.Info("Starting server at", "address", server.Addr)
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			l.Fatal(err)
+			l.Error("server finished with an error", "error", err)
 		}
 
 	}()

@@ -15,7 +15,13 @@ import (
 func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
 	p.l.Debug("Get all records")
 	rw.Header().Add("Content-Type", "application/json")
-	products, err := p.productDB.GetProducts("")
+	currency := r.URL.Query().Get("currency")
+	if currency != "" {
+		p.l.Debug("non default currency is provided. all prices would be shown in new one.", "currency", currency)
+	} else {
+		p.l.Debug("no currency provided. all prices would be shown in EUR.")
+	}
+	products, err := p.productDB.GetProducts(currency)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		data.ToJSON(&GenericError{Message: err.Error()}, rw)
@@ -40,7 +46,13 @@ func (p *Products) GetProduct(rw http.ResponseWriter, r *http.Request) {
 	id := p.getProductID(r)
 	p.l.Debug("Get record", "id", id)
 	rw.Header().Add("Content-Type", "application/json")
-	product, err := p.productDB.GetProduct(id, "")
+	currency := r.URL.Query().Get("currency")
+	if currency != "" {
+		p.l.Debug("non default currency is provided. all prices would be shown in new one.", "currency", currency)
+	} else {
+		p.l.Debug("no currency provided. all prices would be shown in EUR.")
+	}
+	product, err := p.productDB.GetProduct(id, currency)
 	switch err {
 	case nil:
 	case data.ErrProductNotFound:

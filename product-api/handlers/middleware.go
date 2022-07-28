@@ -14,14 +14,14 @@ func (p *Products) MiddlewareValidateProduct(next http.Handler) http.Handler {
 		product := data.NewProduct()
 		if err := data.FromJSON(&product, r.Body); err != nil {
 			msg := "error marshaling request body: " + err.Error()
-			p.l.Println("[ERROR]: " + msg)
+			p.l.Error("[ERROR]: " + msg)
 			rw.WriteHeader(http.StatusBadRequest)
 			data.ToJSON(&GenericError{Message: msg}, rw)
 			return
 		}
 		if errs := p.v.Validate(&product); errs != nil && len(errs) != 0 {
 			msg := "error validate the product: "
-			p.l.Println(msg, errs.Errors())
+			p.l.Error(msg, "errors", errs.Errors())
 			rw.WriteHeader(http.StatusUnprocessableEntity)
 			data.ToJSON(&ValidationError{Messages: errs.Errors()}, rw)
 			return
