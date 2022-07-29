@@ -25,7 +25,9 @@ func main() {
 	cs := server.NewCurrency(rates, log)
 	protos.RegisterCurrencyServer(gc, cs)
 	reflection.Register(gc)
-	l, err := net.Listen("tcp", ":8082")
+	addr := ":8082"
+	log.Info("Starting gRPC server", "address", addr)
+	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Error("Unable to listen", "error", err)
 		os.Exit(1)
