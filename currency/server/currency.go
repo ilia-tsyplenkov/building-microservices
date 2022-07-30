@@ -87,7 +87,7 @@ func (c *Currency) SubscribeRates(src protos.Currency_SubscribeRatesServer) erro
 			c.log.Error("unable to read from client", "error", err)
 			return err
 		}
-		c.log.Info("handle client request", "Base", rr.Base.String(), "Destionation", rr.Destination.String())
+		c.log.Info("handle client request", "Base", rr.Base.String(), "Destination", rr.Destination.String())
 
 		rrs, ok := c.subscriptions[src]
 		if !ok {
@@ -96,7 +96,7 @@ func (c *Currency) SubscribeRates(src protos.Currency_SubscribeRatesServer) erro
 		var validationError *status.Status
 		for _, v := range rrs {
 			if rr.Base == v.Base && rr.Destination == v.Destination {
-				validationError := status.Newf(codes.AlreadyExists,
+				validationError = status.Newf(codes.AlreadyExists,
 					"Unable to subscribe for currency as subscription already exists")
 				// add original request as metadata
 				validationError, err = validationError.WithDetails(rr)

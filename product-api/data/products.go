@@ -102,14 +102,21 @@ func (p *ProductsDB) handleUpdates() {
 	p.streamClient = sub
 	for {
 		rr, err := sub.Recv()
-		p.log.Info("received updated rate from server", "destination", rr.Destination.String())
 		if err != nil {
 			p.log.Error("unable to receive rates", "error", err)
 			return
 		}
-		p.m.Lock()
-		p.rates[rr.Destination.String()] = rr.Rate
-		p.m.Unlock()
+		if grpcErr := rr.GetError(); grpcErr != nil {
+			p.log.Error("error subscribing for rates", "error", grpcErr)
+			continue
+		}
+		if resp := rr.GetRateResponse(); resp != nil {
+			p.log.Info("received updated rate from server", "destination", resp.Destination.String())
+			p.m.Lock()
+			p.rates[resp.Destination.String()] = resp.Rate
+			p.m.Unlock()
+
+		}
 
 	}
 
