@@ -53,7 +53,7 @@ func (c *currencyClient) SubscribeRates(ctx context.Context, opts ...grpc.CallOp
 
 type Currency_SubscribeRatesClient interface {
 	Send(*RateRequest) error
-	Recv() (*RateResponse, error)
+	Recv() (*StreamingRateResponse, error)
 	grpc.ClientStream
 }
 
@@ -65,8 +65,8 @@ func (x *currencySubscribeRatesClient) Send(m *RateRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *currencySubscribeRatesClient) Recv() (*RateResponse, error) {
-	m := new(RateResponse)
+func (x *currencySubscribeRatesClient) Recv() (*StreamingRateResponse, error) {
+	m := new(StreamingRateResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func _Currency_SubscribeRates_Handler(srv interface{}, stream grpc.ServerStream)
 }
 
 type Currency_SubscribeRatesServer interface {
-	Send(*RateResponse) error
+	Send(*StreamingRateResponse) error
 	Recv() (*RateRequest, error)
 	grpc.ServerStream
 }
@@ -140,7 +140,7 @@ type currencySubscribeRatesServer struct {
 	grpc.ServerStream
 }
 
-func (x *currencySubscribeRatesServer) Send(m *RateResponse) error {
+func (x *currencySubscribeRatesServer) Send(m *StreamingRateResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 

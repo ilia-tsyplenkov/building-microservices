@@ -37,7 +37,13 @@ func (c *Currency) handleUpdates() {
 					// do not serve this RateRequest anymore
 					v = append(v[:i], v[i+1:]...)
 				}
-				if err := k.Send(&protos.RateResponse{Base: rr.Base, Destination: rr.Destination, Rate: rate}); err != nil {
+				err = k.Send(&protos.StreamingRateResponse{
+					Message: &protos.StreamingRateResponse_RateResponse{
+						RateResponse: &protos.RateResponse{
+							Base: rr.Base, Destination: rr.Destination, Rate: rate},
+					},
+				})
+				if err != nil {
 					c.log.Error("unable to send updated rate", "Base", rr.Base.String(), "Destination", rr.Destination.String(), "error", err)
 					// delete problem subscription from the map
 					delete(c.subscriptions, k)
@@ -87,8 +93,32 @@ func (c *Currency) SubscribeRates(src protos.Currency_SubscribeRatesServer) erro
 		if !ok {
 			rrs = make([]*protos.RateRequest, 0)
 		}
-		rrs = append(rrs, rr)
-		c.subscriptions[src] = rrs
+		var validationError *status.Status
+		for _, v := range rrs {
+			if rr.Base == v.Base && rr.Destination == v.Destination {
+				validationError := status.Newf(codes.AlreadyExists,
+					"Unable to subscribe for currency as subscription already exists")
+				// add original request as metadata
+				validationError, err = validationError.WithDetails(rr)
+				if err != nil {
+					c.log.Error("unable to add metadata to error", "error", err)
+				}
+				break
+			}
+		}
+		// if a validation error return it
+		if validationError != nil {
+			src.Send(
+				&protos.StreamingRateResponse{
+					Message: &protos.StreamingRateResponse_Error{
+						Error: validationError.Proto(),
+					},
+				},
+			)
+		} else {
+			rrs = append(rrs, rr)
+			c.subscriptions[src] = rrs
+		}
 	}
 
 	return nil
