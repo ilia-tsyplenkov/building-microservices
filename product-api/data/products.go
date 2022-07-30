@@ -3,10 +3,13 @@ package data
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 	protos "github.com/ilia-tsyplenkov/building-microservices/currency/protos/currency"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // ErrProductNotFound is an error raised when a product can not be found in the database
@@ -77,12 +80,39 @@ var productList = []*Product{
 type Products []*Product
 
 type ProductsDB struct {
-	currency protos.CurrencyClient
-	log      hclog.Logger
+	currency     protos.CurrencyClient
+	log          hclog.Logger
+	rates        map[string]float64
+	m            sync.Mutex
+	streamClient protos.Currency_SubscribeRatesClient
 }
 
 func NewProductDB(c protos.CurrencyClient, l hclog.Logger) *ProductsDB {
-	return &ProductsDB{currency: c, log: l}
+	pb := &ProductsDB{currency: c, log: l, rates: make(map[string]float64)}
+	go pb.handleUpdates()
+	return pb
+}
+
+func (p *ProductsDB) handleUpdates() {
+	sub, err := p.currency.SubscribeRates(context.Background())
+	if err != nil {
+		p.log.Error("unable to subscribe for rates", "error", err)
+		return
+	}
+	p.streamClient = sub
+	for {
+		rr, err := sub.Recv()
+		p.log.Info("received updated rate from server", "destination", rr.Destination.String())
+		if err != nil {
+			p.log.Error("unable to receive rates", "error", err)
+			return
+		}
+		p.m.Lock()
+		p.rates[rr.Destination.String()] = rr.Rate
+		p.m.Unlock()
+
+	}
+
 }
 
 func (p *ProductsDB) GetProducts(currency string) (Products, error) {
@@ -151,12 +181,41 @@ func (p *ProductsDB) DeleteProduct(id int) error {
 }
 
 func (p *ProductsDB) getRate(baseCurrency, dstCurrency string) (float64, error) {
+	// if cached, return
+	p.m.Lock()
+	defer p.m.Unlock()
+	if r, ok := p.rates[dstCurrency]; ok {
+		return r, nil
+	}
 	// get exchange rate
 	request := &protos.RateRequest{
 		Base:        protos.Currencies(protos.Currencies_value[baseCurrency]),
 		Destination: protos.Currencies(protos.Currencies_value[dstCurrency]),
 	}
+	// get initial rates
 	rr, err := p.currency.GetRate(context.Background(), request)
+	if err != nil {
+		if s, ok := status.FromError(err); ok {
+			md := s.Details()[0].(*protos.RateRequest)
+			if s.Code() == codes.InvalidArgument {
+				return -1, fmt.Errorf("Unable to get rate from currency server, destination and base currencies can not be the same, base: %s, dest: %s",
+					md.Base.String(),
+					md.Destination.String())
+
+			}
+			return -1, fmt.Errorf("Unable to get rate from currency server, base: %s, dest: %s",
+				md.Base.String(),
+				md.Destination.String())
+		}
+		return -1, err
+	}
+	p.rates[dstCurrency] = rr.Rate // update cache
+
+	// subscribe for updates
+	err = p.streamClient.Send(request)
+	if err != nil {
+		p.log.Error("unable to subscribe for updates", "destination", dstCurrency, "error", err)
+	}
 	return rr.Rate, err
 
 }

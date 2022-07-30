@@ -59,10 +59,12 @@ func (p *Products) GetProduct(rw http.ResponseWriter, r *http.Request) {
 		p.l.Error("unable to find product", "id", id, "error", err)
 		rw.WriteHeader(http.StatusNotFound)
 		data.ToJSON(&GenericError{Message: err.Error()}, rw)
+		return
 	default:
 		p.l.Error("unable to fetch product", "id", id, "error", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		data.ToJSON(&GenericError{Message: err.Error()}, rw)
+		return
 	}
 	if err := data.ToJSON(product, rw); err != nil {
 		p.l.Error("Unable to serialize product", "id", id, "error", err)

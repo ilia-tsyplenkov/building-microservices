@@ -7,6 +7,8 @@ import (
 
 	"github.com/ilia-tsyplenkov/building-microservices/currency/data"
 	protos "github.com/ilia-tsyplenkov/building-microservices/currency/protos/currency"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/go-hclog"
 )
@@ -28,13 +30,17 @@ func (c *Currency) handleUpdates() {
 	ru := c.rates.MonitorRates(5 * time.Second)
 	for range ru {
 		for k, v := range c.subscriptions {
-			for _, rr := range v {
+			for i, rr := range v {
 				rate, err := c.rates.GetRate(rr.Base.String(), rr.Destination.String())
 				if err != nil {
 					c.log.Error("unable to get rates", "Base", rr.Base.String(), "Destination", rr.Destination.String())
+					// do not serve this RateRequest anymore
+					v = append(v[:i], v[i+1:]...)
 				}
 				if err := k.Send(&protos.RateResponse{Base: rr.Base, Destination: rr.Destination, Rate: rate}); err != nil {
-					c.log.Error("unable to send updated rate", "Base", rr.Base.String(), "Destination", rr.Destination.String())
+					c.log.Error("unable to send updated rate", "Base", rr.Base.String(), "Destination", rr.Destination.String(), "error", err)
+					// delete problem subscription from the map
+					delete(c.subscriptions, k)
 				}
 
 			}
@@ -42,8 +48,20 @@ func (c *Currency) handleUpdates() {
 
 	}
 }
+
 func (c *Currency) GetRate(ctx context.Context, rr *protos.RateRequest) (*protos.RateResponse, error) {
 	c.log.Info("Handle GetRate", "base", rr.GetBase(), "destination", rr.GetDestination())
+	if rr.Base == rr.Destination {
+		err := status.Newf(codes.InvalidArgument,
+			"Base currency - %q can not be the same as the destination one - %q",
+			rr.Base.String(),
+			rr.Destination.String())
+		err, wde := err.WithDetails(rr)
+		if wde != nil {
+			return nil, wde
+		}
+		return nil, err.Err()
+	}
 	rate, err := c.rates.GetRate(rr.GetBase().String(), rr.GetDestination().String())
 	if err != nil {
 		return nil, err

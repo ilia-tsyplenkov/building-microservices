@@ -30,7 +30,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/ilia-tsyplenkov/building-microservices/currency v0.0.0-20220726111913-c94c84fa70bb // indirect
+	github.com/ilia-tsyplenkov/building-microservices/currency v0.0.0-20220729140604-493261ef35ab // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect

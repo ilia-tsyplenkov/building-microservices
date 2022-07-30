@@ -81,7 +81,7 @@ func main() {
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
 	sig := <-sigChan
-	l.Info("Got signal -", sig)
+	l.Info("Got signal", "signal", sig)
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	l.Info("Shutting server down...")
 	server.Shutdown(ctx)
